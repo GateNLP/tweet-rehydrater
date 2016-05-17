@@ -2,6 +2,10 @@
 
 This is a very simple command line tool to take standoff annotations that relate to tweets from Twitter, fetch the corresponding data including the tweet text from the Twitter API, and merge the two.
 
+## Download
+
+The latest release of the rehydrater tool can be download [from GitHub][1]
+
 ## Usage
 
     java -jar tweet-rehydrater.jar <credentials> <input> <output>
@@ -10,7 +14,7 @@ This is a very simple command line tool to take standoff annotations that relate
   - `input` - file containing "dehydrated" Tweets, i.e. a stream of JSON objects with properties "id" (long integer Tweet ID) and "entities" (standoff annotations).  Use "-" (a single hyphen) to read from standard input.
   - `output` - file into which rehydrated Tweets should be written.  Use "-" (a single hyphen) to write to standard output
 
-API access uses the ["application only"][1] authentication scheme.  You must create a Twitter application, and provide its consumer key and secret in a properties file:
+API access uses the ["application only"][2] authentication scheme.  You must create a Twitter application, and provide its consumer key and secret in a properties file:
 
     consumerKey=...
     consumerSecret=...
@@ -57,4 +61,5 @@ The `entities` property is an object where each property name is an annotation t
 It is possible for a user to delete any of their tweets at any time after posting them, and deleted tweets will not be returned by the Twitter APIs.  Therefore it is possible that there may be annotations in the input file for which the original tweet is no longer available, and such tweets will be omitted from the output.
 
 
- [1]: https://dev.twitter.com/oauth/application-only
+ [1]: https://github.com/GateNLP/tweet-rehydrater/releases/latest
+ [2]: https://dev.twitter.com/oauth/application-only
