@@ -6,7 +6,7 @@
   <groupId>uk.ac.gate</groupId>
   <artifactId>tweet-rehydrater</artifactId>
   <packaging>jar</packaging>
-  <version>0.1-SNAPSHOT</version>
+  <version>1.0</version>
   <name>Tweet rehydrater</name>
   <url>https://gate.ac.uk</url>
 
