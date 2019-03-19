@@ -64,6 +64,13 @@ public class Rehydrate {
       System.err.println();
       System.err.println("You can create an application at https://apps.twitter.com");
       System.err.println();
+      System.err.println("By default this tool fetches \"extended\" format tweets, if you want");
+      System.err.println("to fetch them in \"compatibility\" mode instead, add");
+      System.err.println();
+      System.err.println("  compatibilityMode=true");
+      System.err.println();
+      System.err.println("to your credentials properties file.");
+      System.err.println();
       System.err.println("Note that the API used is rate-limited - do not attempt to rehydrate");
       System.err.println("more than 6000 Tweets in any 15 minute window.");
       System.exit(1);
@@ -89,7 +96,8 @@ public class Rehydrate {
                       .setRootValueSeparator(new SerializedString("\n"))) {
         process(inStream, jsonG,
                 credentials.getProperty("consumerKey"),
-                credentials.getProperty("consumerSecret"));
+                credentials.getProperty("consumerSecret"),
+                Boolean.parseBoolean(credentials.getProperty("compatibilityMode", "false")));
       }
     }
   }
@@ -100,7 +108,7 @@ public class Rehydrate {
    * minutes is 60 requests times 100 Tweets per request)
    */
   public static void process(InputStream in, JsonGenerator out,
-          String consumerKey, String secret) throws Exception {
+          String consumerKey, String secret, boolean compatMode) throws Exception {
     // obtain OAuth2 bearer token
     String bearerAuthHeader = getToken(consumerKey, secret);
     // read input tweets
@@ -112,13 +120,13 @@ public class Rehydrate {
     while(dehydratedTweets.hasNext()) {
       currentBatch.add(dehydratedTweets.next());
       if((++count % 100) == 0) {
-        processBatch(currentBatch, out, bearerAuthHeader);
+        processBatch(currentBatch, out, bearerAuthHeader, compatMode);
         currentBatch.clear();
       }
     }
     // last batch, if we didn't have an exact multiple of 100
     if(!currentBatch.isEmpty()) {
-      processBatch(currentBatch, out, bearerAuthHeader);
+      processBatch(currentBatch, out, bearerAuthHeader, compatMode);
     }
   }
 
@@ -186,7 +194,7 @@ public class Rehydrate {
   }
 
   protected static void processBatch(List<IdAndEntities> currentBatch,
-          JsonGenerator out, String bearerAuthHeader) throws Exception {
+          JsonGenerator out, String bearerAuthHeader, boolean compatMode) throws Exception {
     // call Twitter statuses/lookup
     URL lookupUrl = new URL(API_BASE + "/1.1/statuses/lookup.json");
     HttpURLConnection connection =
@@ -199,6 +207,9 @@ public class Rehydrate {
 
     try(Writer w =
             new OutputStreamWriter(connection.getOutputStream(), "UTF-8")) {
+      if(!compatMode) {
+        w.write("tweet_mode=extended&");
+      }
       w.write("id=");
       Iterator<IdAndEntities> batchIterator = currentBatch.iterator();
       w.write(String.valueOf(batchIterator.next().id));
@@ -229,10 +240,24 @@ public class Rehydrate {
         System.err.println("No Tweet found with ID " + itemToMerge.id
                 + " - it may have been deleted");
       } else {
-        ObjectNode entitiesNode = (ObjectNode)matchingTweet.get("entities");
+        mergeEntities(matchingTweet, itemToMerge);
+        // output the result
+        MAPPER.writeValue(out, matchingTweet);
+      }
+    }
+  }
+
+  /**
+   * Merge entities from the given IdAndEntities into the given Json status
+   * object, and recurse into retweeted and quoted status if these are present.
+   */
+  public static void mergeEntities(JsonNode status, IdAndEntities itemToMerge) {
+    if(status != null && itemToMerge != null) {
+      if(itemToMerge.entities != null) {
+        ObjectNode entitiesNode = (ObjectNode)status.get("entities");
         if(entitiesNode == null) {
           entitiesNode = MAPPER.getNodeFactory().objectNode();
-          ((ObjectNode)matchingTweet).put("entities", entitiesNode);
+          ((ObjectNode)status).put("entities", entitiesNode);
         }
         for(Map.Entry<String, List<JsonNode>> entitiesEntry : itemToMerge.entities
                 .entrySet()) {
@@ -244,9 +269,11 @@ public class Rehydrate {
           }
           entitiesOfType.addAll(entitiesEntry.getValue());
         }
-        // output the result
-        MAPPER.writeValue(out, matchingTweet);
       }
+      // process retweet, if any
+      mergeEntities(status.get("retweeted_status"), itemToMerge.retweeted_status);
+      // process quote, if any
+      mergeEntities(status.get("quoted_status"), itemToMerge.quoted_status);
     }
   }
 

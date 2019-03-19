@@ -14,6 +14,19 @@ class IdAndEntities {
 
   public long id;
   
+  /**
+   * Entities in this status (may be null).
+   */
   public Map<String, List<JsonNode>> entities;
+
+  /**
+   * Entities in the retweeted status (if this is a retweet).
+   */
+  public IdAndEntities retweeted_status;
+
+  /**
+   * Entities in the quoted status (if this is a quote).
+   */
+  public IdAndEntities quoted_status;
 
 }
