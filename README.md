@@ -21,16 +21,23 @@ API access uses the ["application only"][2] authentication scheme.  You must cre
 
 You can create an application at https://apps.twitter.com
 
+By default this tool fetches "extended" format tweets, if you want to fetch them in "compatibility" mode instead, add
+
+  compatibilityMode=true
+
+to your credentials properties file.
+
 Note that the API used is rate-limited - do not attempt to rehydrate more than 6000 Tweets in any 15 minute window.
 
 ## Data format
 
-The input file is expected to contain a stream of JSON objects concatenated together, one per tweet.  Each object must have at least the following two properties:
+The input file is expected to contain a stream of JSON objects concatenated together, one per tweet, which are essentially a subset of the standard Twitter JSON format that will be merged into the full JSON retrieved from Twitter.  Each object must have at least the following property:
 
  - `id` - a long integer giving the ID of the tweet
- - `entities` - the standoff annotations, represented in the normal Twitter format as used for things like hashtags and URLs in the Twitter APIs.
 
-The `entities` property is an object where each property name is an annotation type and the corresponding value is an array of objects representing the annotations of that type.  Each annotation object has a property `indices` giving the annotation offsets, and other properties are treated as annotation features, for example:
+In addition, the object may have a property `entities` giving the standoff annotations in the top-level `full_text` (or `text` in compatibility mode), represented in the normal Twitter format as used for things like hashtags and URLs in the Twitter APIs.  If the tweet in question is a retweet, the input object may have `retweeted_status` which in turn contains an `entities` property, giving annotations in the `full_text` of the original retweeted status, and if the tweet is a quote tweet the input object may have `quoted_status` which in turn contains `entities` in the same way.  Each set of entities will be merged into the corresponding set in the JSON retrieved from Twitter.
+
+Each `entities` property is an object where each property name is an annotation type and the corresponding value is an array of objects representing the annotations of that type.  Each annotation object has a property `indices` giving the annotation offsets, and other properties are treated as annotation features, for example:
 
     {
       "id":12345678,
