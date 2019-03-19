@@ -23,7 +23,7 @@ You can create an application at https://apps.twitter.com
 
 By default this tool fetches "extended" format tweets, if you want to fetch them in "compatibility" mode instead, add
 
-  compatibilityMode=true
+    compatibilityMode=true
 
 to your credentials properties file.
 
